@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     fs, io,
     path::{Path, PathBuf},
 };
@@ -242,20 +241,25 @@ impl App {
         Widget::render(table, area, buf);
     }
 
-    fn sections(&self) -> BTreeMap<String, Vec<Task>> {
+    fn sections(&self) -> Vec<(String, Vec<Task>)> {
         match self.state.sort_by {
             SortBy::Context => self.store.tasks_by_context(),
             SortBy::Priority => self.store.tasks_by_priority(),
             SortBy::Status => self.store.tasks_by_status(),
-            SortBy::UpdatedAt => BTreeMap::from([(
-                String::new(),
-                self.store.tasks_by_most_recently_updated_at(),
-            )]),
+            SortBy::UpdatedAt => {
+                let mut tasks = self.store.tasks_by_most_recently_updated_at();
+                tasks.reverse();
+                vec![("in order of most recent updates".to_string(), tasks)]
+            }
         }
     }
 
     fn ids_in_section_order(&self) -> Vec<Uuid> {
-        self.sections().values().flatten().map(|t| t.id).collect()
+        self.sections()
+            .into_iter()
+            .flat_map(|(_, v)| v)
+            .map(|t| t.id)
+            .collect()
     }
 
     fn select_next(&mut self) {

@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use uuid::Uuid;
 
-use crate::task::Task;
+use crate::task::{Priority, Status, Task};
 
 #[derive(Debug, Default)]
 pub struct Store {
@@ -41,7 +41,7 @@ impl Store {
         store
     }
 
-    pub fn tasks_by_context(&self) -> BTreeMap<String, Vec<Task>> {
+    pub fn tasks_by_context(&self) -> Vec<(String, Vec<Task>)> {
         let mut map: BTreeMap<String, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
             if let Some(vec) = map.get_mut(&t.context) {
@@ -53,26 +53,26 @@ impl Store {
         for ts in map.values_mut() {
             ts.sort_by_key(|t| t.priority);
         }
-        map
+        map.into_iter().collect()
     }
 
-    pub fn tasks_by_priority(&self) -> BTreeMap<String, Vec<Task>> {
-        let mut map: BTreeMap<String, Vec<Task>> = BTreeMap::new();
+    pub fn tasks_by_priority(&self) -> Vec<(String, Vec<Task>)> {
+        let mut map: BTreeMap<Priority, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
-            let priority = t.priority.to_string();
+            let priority = t.priority;
             if let Some(vec) = map.get_mut(&priority) {
                 vec.push(t.clone());
             } else {
                 map.insert(priority, vec![t.clone()]);
             }
         }
-        map
+        map.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
     }
 
-    pub fn tasks_by_status(&self) -> BTreeMap<String, Vec<Task>> {
-        let mut map: BTreeMap<String, Vec<Task>> = BTreeMap::new();
+    pub fn tasks_by_status(&self) -> Vec<(String, Vec<Task>)> {
+        let mut map: BTreeMap<Status, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
-            let status = t.status.to_string();
+            let status = t.status;
             if let Some(vec) = map.get_mut(&status) {
                 vec.push(t.clone());
             } else {
@@ -82,7 +82,7 @@ impl Store {
         for ts in map.values_mut() {
             ts.sort_by_key(|t| t.priority);
         }
-        map
+        map.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
     }
 
     pub fn upsert(&mut self, task_id: Uuid, body: impl Into<String>, context: impl Into<String>) {
