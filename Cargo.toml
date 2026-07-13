@@ -1,0 +1,36 @@
+[package]
+name = "loop-tui"
+version = "0.1.0"
+description = "A simple todo-list app, based on GTD - 'loop' from 'list of open points'"
+authors = ["Florian Eich <florian.eich@gmail.com>"]
+license = "MIT"
+edition = "2024"
+rust-version = "1.85"
+repository = "https://github.com/cdbrkfxrpt/loop-tui"
+readme = "README.md"
+keywords = ["todo", "gtd", "tui", "productivity", "cli"]
+categories = ["command-line-utilities"]
+exclude = ["screenshot.png"]
+
+# The crate is published as `loop-tui`, but the installed command stays `loop`.
+[[bin]]
+name = "loop"
+path = "src/main.rs"
+
+[dependencies]
+ansi-to-tui = "8.0.1"
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+directories = "6.0.0"
+enum-iterator = "2.3.0"
+enum_dispatch = "0.3.13"
+eyre = "0.6.12"
+jiff = { version = "0.2.32", features = ["serde"] }
+ratatui = "0.30.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+uuid = { version = "1.23.4", features = ["v7", "serde"] }
+
+[profile.release]
+lto = "thin"
+strip = true
