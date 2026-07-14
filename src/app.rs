@@ -23,7 +23,7 @@ use uuid::Uuid;
 use crate::{
     modal::{EditTaskModal, Modal, ModalControl},
     state::{SortBy, State},
-    store::Store,
+    store::{Format, Store},
     task::{Status, Task},
 };
 
@@ -87,7 +87,12 @@ impl Widget for &mut App {
 }
 
 impl App {
-    pub fn try_run(proj_dirs: &ProjectDirs, terminal: &mut DefaultTerminal) -> eyre::Result<()> {
+    pub fn try_run(
+        proj_dirs: &ProjectDirs,
+        store_path: Option<PathBuf>,
+        format: Format,
+        terminal: &mut DefaultTerminal,
+    ) -> eyre::Result<()> {
         // Helper function to prep the directories and files
         fn set_up_file(dir: &Path, filename: &str) -> eyre::Result<PathBuf> {
             if !dir.exists() {
@@ -106,8 +111,25 @@ impl App {
         let view_state_file = set_up_file(proj_dirs.cache_dir(), "view_state.json")?;
         let view_state = State::try_load(view_state_file)?;
 
-        let data_store_file = set_up_file(proj_dirs.data_dir(), "data_store.json")?;
-        let data_store = Store::try_load(&data_store_file)?;
+        let data_store_file = match store_path {
+            Some(path) => {
+                if let Some(parent) = path.parent()
+                    && !parent.as_os_str().is_empty()
+                    && !parent.exists()
+                {
+                    fs::create_dir_all(parent)?;
+                }
+                path
+            }
+            None => {
+                let filename = match format {
+                    Format::Json => "data_store.json",
+                    Format::Toml => "data_store.toml",
+                };
+                set_up_file(proj_dirs.data_dir(), filename)?
+            }
+        };
+        let data_store = Store::try_load(&data_store_file, format)?;
 
         let mut app = Self {
             state: view_state,

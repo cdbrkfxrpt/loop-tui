@@ -19,6 +19,7 @@ path = "src/main.rs"
 
 [dependencies]
 ansi-to-tui = "8.0.1"
+clap = { version = "4.6.1", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 directories = "6.0.0"
@@ -29,6 +30,7 @@ jiff = { version = "0.2.32", features = ["serde"] }
 ratatui = "0.30.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
+toml = "1.1.2"
 uuid = { version = "1.23.4", features = ["v7", "serde"] }
 
 [profile.release]

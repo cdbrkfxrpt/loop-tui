@@ -1,26 +1,49 @@
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::task::{Priority, Status, Task};
 
+#[derive(Debug, Default, Clone, Copy)]
+pub enum Format {
+    #[default]
+    Json,
+    Toml,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct TomlWrapper {
+    #[serde(default, rename = "task")]
+    tasks: Vec<Task>,
+}
+
 #[derive(Debug, Default)]
 pub struct Store {
     file: PathBuf,
+    format: Format,
     store: Vec<Task>,
 }
 
 impl Store {
-    pub fn try_load(file: impl Into<PathBuf>) -> eyre::Result<Self> {
+    pub fn try_load(file: impl Into<PathBuf>, format: Format) -> eyre::Result<Self> {
         let file = file.into();
 
         let store = if file.exists() {
-            serde_json::from_reader(fs::File::open(&file)?)?
+            let contents = fs::read_to_string(&file)?;
+            match format {
+                Format::Json => serde_json::from_str(&contents)?,
+                Format::Toml => toml::from_str::<TomlWrapper>(&contents)?.tasks,
+            }
         } else {
             Vec::new()
         };
 
-        Ok(Self { file, store })
+        Ok(Self {
+            file,
+            format,
+            store,
+        })
     }
 
     pub fn is_empty(&self) -> bool {
@@ -117,10 +140,17 @@ impl Store {
     }
 
     fn commit_to_disk(&self) {
-        fs::write(
-            &self.file,
-            serde_json::to_string_pretty(&self.store).expect("can serialize points to JSON"),
-        )
-        .expect("can write JSON to points file");
+        let contents = match self.format {
+            Format::Json => {
+                serde_json::to_string_pretty(&self.store).expect("can serialize points to JSON")
+            }
+            Format::Toml => {
+                let wrapper = TomlWrapper {
+                    tasks: self.store.clone(),
+                };
+                toml::to_string_pretty(&wrapper).expect("can serialize points to TOML")
+            }
+        };
+        fs::write(&self.file, contents).expect("can write serialized points to file");
     }
 }
