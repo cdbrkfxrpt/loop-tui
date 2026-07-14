@@ -10,7 +10,7 @@ use ratatui::{
     DefaultTerminal,
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Position, Rect},
-    style::{Style, Stylize},
+    style::{Modifier, Style, Stylize},
     symbols::border,
     text::{Line, Span},
     widgets::{
@@ -65,7 +65,7 @@ impl Widget for &mut App {
             self.state.selected = self
                 .store
                 .tasks_by_most_recently_updated_at()
-                .last()
+                .first()
                 .expect("non-empty store has most recently updated element")
                 .id;
         }
@@ -138,11 +138,11 @@ impl App {
             ]);
 
             if selected_task.status == Status::Open {
-                menu.extend_from_slice(&["|".white(), " [C]lose ".green()]);
+                menu.extend_from_slice(&["|".white(), " [space] Close ".green()]);
             } else if selected_task.status == Status::Closed {
                 menu.extend_from_slice(&[
                     "|".white(),
-                    " [R]eopen ".green(),
+                    " [space] Reopen ".green(),
                     "|".white(),
                     " [D]elete ".green(),
                 ]);
@@ -167,30 +167,28 @@ impl App {
         // You produce the grouping; each box is 2 border rows + one row per task.
         let sections = self.sections();
         let total: u16 = sections.iter().map(|(_, t)| t.len() as u16 + 2).sum();
-
         let viewport = content_area.height;
-        let offset = self.state.scroll.min(total.saturating_sub(viewport));
-        self.state.scroll = offset;
 
         // Paint every box into a buffer tall enough for all of them, then copy the
         // visible slice onto the screen.
         let mut scratch = Buffer::empty(Rect::new(0, 0, content_area.width, total.max(viewport)));
         let mut y = 0;
-        for (title, tasks) in &sections {
+        for (title, tasks) in sections {
             let height = tasks.len() as u16 + 2;
             self.render_task_box(
                 title,
-                tasks,
+                &tasks,
                 Rect::new(0, y, content_area.width, height),
                 &mut scratch,
             );
             y += height;
         }
 
+        self.state.scroll = self.state.scroll.min(total.saturating_sub(viewport));
         for row in 0..viewport {
             for col in 0..content_area.width {
                 if let (Some(src), Some(dst)) = (
-                    scratch.cell(Position::new(col, row + offset)),
+                    scratch.cell(Position::new(col, row + self.state.scroll)),
                     buf.cell_mut(Position::new(content_area.x + col, content_area.y + row)),
                 ) {
                     *dst = src.clone();
@@ -202,7 +200,7 @@ impl App {
             let scrollbar_area = Rect::new(area.right() - 1, area.y, 1, area.height);
             let mut state = ScrollbarState::new(total as usize)
                 .viewport_content_length(viewport as usize)
-                .position(offset as usize);
+                .position(self.state.scroll as usize);
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(None)
                 .end_symbol(None)
@@ -210,7 +208,7 @@ impl App {
         }
     }
 
-    fn render_task_box(&self, title: &str, tasks: &[Task], area: Rect, buf: &mut Buffer) {
+    fn render_task_box(&self, title: Line<'_>, tasks: &[Task], area: Rect, buf: &mut Buffer) {
         let rows = tasks.iter().map(|task| {
             let marker = if task.id == self.state.selected {
                 "󰧂"
@@ -237,19 +235,51 @@ impl App {
 
         let table = Table::new(rows, widths)
             .column_spacing(2)
-            .block(Block::new().title(title.to_string()));
+            .block(Block::new().title(title));
         Widget::render(table, area, buf);
     }
 
-    fn sections(&self) -> Vec<(String, Vec<Task>)> {
+    fn sections(&self) -> Vec<(Line<'_>, Vec<Task>)> {
         match self.state.sort_by {
-            SortBy::Context => self.store.tasks_by_context(),
-            SortBy::Priority => self.store.tasks_by_priority(),
-            SortBy::Status => self.store.tasks_by_status(),
+            SortBy::Context => self
+                .store
+                .tasks_by_context()
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        Line::styled(k, Style::default().add_modifier(Modifier::BOLD)),
+                        v,
+                    )
+                })
+                .collect(),
+            SortBy::Priority => self
+                .store
+                .tasks_by_priority()
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        Line::styled(
+                            k.to_string(),
+                            Style::default().add_modifier(Modifier::BOLD).fg(k.color()),
+                        ),
+                        v,
+                    )
+                })
+                .collect(),
+            SortBy::Status => self
+                .store
+                .tasks_by_status()
+                .into_iter()
+                .map(|(k, v)| (Line::from(k.to_string().bold()), v))
+                .collect(),
             SortBy::UpdatedAt => {
-                let mut tasks = self.store.tasks_by_most_recently_updated_at();
-                tasks.reverse();
-                vec![("in order of most recent updates".to_string(), tasks)]
+                vec![(
+                    Line::styled(
+                        "in order of most recent update",
+                        Style::default().fg(ratatui::style::Color::DarkGray),
+                    ),
+                    self.store.tasks_by_most_recently_updated_at(),
+                )]
             }
         }
     }
@@ -344,10 +374,7 @@ impl App {
 
         if let Some(task) = self.store.find_task(self.state.selected).cloned() {
             match code {
-                KeyCode::Char('c') if task.status == Status::Open => {
-                    self.store.rotate_status(task.id);
-                }
-                KeyCode::Char('r') if task.status == Status::Closed => {
+                KeyCode::Char(' ') => {
                     self.store.rotate_status(task.id);
                 }
                 KeyCode::Char('d') if task.status == Status::Closed => {

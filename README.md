@@ -28,16 +28,28 @@ the charm.
 
 - [x] **Fast capture** - press `a`, type a task, hit `Enter`.
 - [x] **Priorities** - every task carries a priority, symboled and color coded.
-- [ ] **Due dates** - tasks have a due date, and you can sort by due date.
-- [ ] **Recurrence** - tasks can repeat weekly, monthly, quarterly, or yearly, with N days offset.
 - [x] **Sort by...** - cycle between sorting by context, priority, both, ...
 - [x] **Local, plain-text storage** - all stored in JSON on disk.
+- [ ] **Due dates** - tasks have a due date, and you can sort by due date.
+- [ ] **Recurrence** - tasks can repeat weekly, monthly, quarterly, or yearly, with N days offset.
 - [ ] **Sync across laptops** - keep it simple; perhaps device2device over SSH?
+
+### This is my Zero Claude Project
+
+I like LLMs, but I believe everyone should have a zero Claude project, in which LLMs are not used
+(or at least not used for generating more than snippets that contribute to learning). Read more
+about this [in my blog](https://cdbrkfxrpt.ch/blog/zero-claude-project/).
 
 
 ## Install
 
-### With Nix (recommended)
+### With Cargo (what I do)
+
+```sh
+cargo install loop-tui
+```
+
+### With Nix
 
 The repo ships a flake, so you can run it without cloning:
 
@@ -46,12 +58,6 @@ nix run github:cdbrkfxrpt/loop-tui
 ```
 
 It's not in nixpkgs. I'm not convinced it should be. Let me know if you disagree.
-
-### With Cargo
-
-```sh
-cargo install loop-tui
-```
 
 
 ## Usage
