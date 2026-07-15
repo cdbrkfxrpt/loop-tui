@@ -39,10 +39,12 @@ impl Store {
     pub fn tasks_by_most_recently_updated_at(&self) -> Vec<Task> {
         let mut store = self.store.clone();
         store.sort_by_key(|t| t.id);
+        store.reverse();
+        store.sort_by_key(|t| t.status);
         store
     }
 
-    pub fn tasks_by_context(&self) -> Vec<(String, Vec<Task>)> {
+    pub fn tasks_by_context(&self) -> BTreeMap<String, Vec<Task>> {
         let mut map: BTreeMap<String, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
             if let Some(vec) = map.get_mut(&t.context) {
@@ -53,11 +55,12 @@ impl Store {
         }
         for ts in map.values_mut() {
             ts.sort_by_key(|t| t.priority);
+            ts.sort_by_key(|t| t.status);
         }
-        map.into_iter().collect()
+        map
     }
 
-    pub fn tasks_by_priority(&self) -> Vec<(String, Vec<Task>)> {
+    pub fn tasks_by_priority(&self) -> BTreeMap<Priority, Vec<Task>> {
         let mut map: BTreeMap<Priority, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
             let priority = t.priority;
@@ -67,10 +70,13 @@ impl Store {
                 map.insert(priority, vec![t.clone()]);
             }
         }
-        map.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
+        for ts in map.values_mut() {
+            ts.sort_by_key(|t| t.status);
+        }
+        map
     }
 
-    pub fn tasks_by_status(&self) -> Vec<(String, Vec<Task>)> {
+    pub fn tasks_by_status(&self) -> BTreeMap<Status, Vec<Task>> {
         let mut map: BTreeMap<Status, Vec<Task>> = BTreeMap::new();
         for t in &self.store {
             let status = t.status;
@@ -82,8 +88,9 @@ impl Store {
         }
         for ts in map.values_mut() {
             ts.sort_by_key(|t| t.priority);
+            ts.sort_by_key(|t| t.status);
         }
-        map.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
+        map
     }
 
     pub fn upsert(&mut self, task_id: Uuid, body: impl Into<String>, context: impl Into<String>) {
