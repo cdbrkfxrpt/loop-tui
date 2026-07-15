@@ -23,7 +23,7 @@ use uuid::Uuid;
 use crate::{
     modal::{EditTaskModal, Modal, ModalControl},
     state::{SortBy, State},
-    store::{Format, Store},
+    store::Store,
     task::{Status, Task},
 };
 
@@ -90,7 +90,6 @@ impl App {
     pub fn try_run(
         proj_dirs: &ProjectDirs,
         store_path: Option<PathBuf>,
-        format: Format,
         terminal: &mut DefaultTerminal,
     ) -> eyre::Result<()> {
         // Helper function to prep the directories and files
@@ -121,15 +120,9 @@ impl App {
                 }
                 path
             }
-            None => {
-                let filename = match format {
-                    Format::Json => "data_store.json",
-                    Format::Toml => "data_store.toml",
-                };
-                set_up_file(proj_dirs.data_dir(), filename)?
-            }
+            None => set_up_file(proj_dirs.data_dir(), "data_store.json")?,
         };
-        let data_store = Store::try_load(&data_store_file, format)?;
+        let data_store = Store::try_load(&data_store_file)?;
 
         let mut app = Self {
             state: view_state,
