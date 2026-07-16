@@ -13,8 +13,7 @@ use directories::ProjectDirs;
 #[derive(Debug, Parser)]
 #[command(version, about)]
 struct Cli {
-    /// Path to the data store file (overrides the default location under the system data dir).
-    #[arg(long)]
+    /// Path to the task store file (overrides the default location under the system data dir).
     path: Option<PathBuf>,
 }
 
@@ -23,7 +22,7 @@ fn main() -> eyre::Result<()> {
 
     let cli = Cli::parse();
 
-    let Some(proj_dirs) = ProjectDirs::from("org", "cdbrkfxrpt", "loop") else {
+    let Some(proj_dirs) = ProjectDirs::from("org", "loop-tui", "loop") else {
         eyre::bail!("unable to access project dirs (used for storing config and data)");
     };
 

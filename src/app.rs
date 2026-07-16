@@ -93,40 +93,26 @@ impl App {
         terminal: &mut DefaultTerminal,
     ) -> eyre::Result<()> {
         // Helper function to prep the directories and files
-        fn set_up_file(dir: &Path, filename: &str) -> eyre::Result<PathBuf> {
-            if !dir.exists() {
-                fs::create_dir_all(dir)?;
+        fn set_up_file(path: &Path) -> eyre::Result<PathBuf> {
+            if let Some(parent) = path.parent()
+                && !parent.as_os_str().is_empty()
+                && !parent.exists()
+            {
+                fs::create_dir_all(parent)?;
             }
-            eyre::ensure!(
-                dir.is_dir(),
-                "dir for {filename} must be a directory; {dir:?} is not"
-            );
-
-            let mut file = dir.to_path_buf();
-            file.push(filename);
-            Ok(file)
+            Ok(path.to_path_buf())
         }
 
-        let view_state_file = set_up_file(proj_dirs.cache_dir(), "view_state.json")?;
-        let view_state = State::try_load(view_state_file)?;
+        let state_file = set_up_file(&proj_dirs.cache_dir().join("state.json"))?;
+        let state = State::try_load(state_file)?;
 
-        let data_store_file = match store_path {
-            Some(path) => {
-                if let Some(parent) = path.parent()
-                    && !parent.as_os_str().is_empty()
-                    && !parent.exists()
-                {
-                    fs::create_dir_all(parent)?;
-                }
-                path
-            }
-            None => set_up_file(proj_dirs.data_dir(), "data_store.json")?,
-        };
-        let data_store = Store::try_load(&data_store_file)?;
+        let store_file =
+            set_up_file(&store_path.unwrap_or_else(|| proj_dirs.data_dir().join("store.json")))?;
+        let store = Store::try_load(&store_file)?;
 
         let mut app = Self {
-            state: view_state,
-            store: data_store,
+            state,
+            store,
             ..Default::default()
         };
 
@@ -164,7 +150,7 @@ impl App {
             }
             menu.extend_from_slice(&["|".white(), " [S]ort By ".yellow()]);
         }
-        menu.extend_from_slice(&["|".white(), " [Q]uit ".red()]);
+        menu.extend_from_slice(&["|".white(), " [esc] quit ".red()]);
 
         Line::from(menu).centered()
     }
@@ -367,7 +353,7 @@ impl App {
                     .unwrap_or_default();
                 self.modal = Some(EditTaskModal::new_task(context));
             }
-            KeyCode::Char('q') => {
+            KeyCode::Esc => {
                 self.state.commit_to_disk();
                 self.exited = true;
             }

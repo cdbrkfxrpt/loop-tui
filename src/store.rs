@@ -15,8 +15,7 @@ impl Store {
         let file = file.into();
 
         let store = if file.exists() {
-            let contents = fs::read_to_string(&file)?;
-            serde_json::from_str(&contents)?
+            serde_json::from_str(&fs::read_to_string(&file)?)?
         } else {
             Vec::new()
         };
@@ -125,8 +124,10 @@ impl Store {
     }
 
     fn commit_to_disk(&self) {
-        let contents =
-            serde_json::to_string_pretty(&self.store).expect("can serialize points to JSON");
-        fs::write(&self.file, contents).expect("can write serialized points to file");
+        fs::write(
+            &self.file,
+            serde_json::to_string_pretty(&self.store).expect("can serialize store to JSON"),
+        )
+        .expect("can write serialized store to file");
     }
 }
