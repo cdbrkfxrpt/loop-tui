@@ -4,15 +4,27 @@ mod state;
 mod store;
 mod task;
 
+use std::path::PathBuf;
+
 use app::App;
+use clap::Parser;
 use directories::ProjectDirs;
+
+#[derive(Debug, Parser)]
+#[command(version, about)]
+struct Cli {
+    /// Path to the task store file (overrides the default location under the system data dir).
+    path: Option<PathBuf>,
+}
 
 fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
-    let Some(proj_dirs) = ProjectDirs::from("org", "cdbrkfxrpt", "loop") else {
+    let cli = Cli::parse();
+
+    let Some(proj_dirs) = ProjectDirs::from("org", "loop-tui", "loop") else {
         eyre::bail!("unable to access project dirs (used for storing config and data)");
     };
 
-    ratatui::run(|terminal| App::try_run(&proj_dirs, terminal))
+    ratatui::run(|terminal| App::try_run(&proj_dirs, cli.path, terminal))
 }

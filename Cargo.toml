@@ -1,6 +1,6 @@
 [package]
 name = "loop-tui"
-version = "0.2.0"
+version = "0.3.0"
 description = "A simple todo-list app, based on GTD - 'loop' from 'list of open points'"
 authors = ["Florian Eich <florian.eich@gmail.com>"]
 license = "MIT"
@@ -19,6 +19,7 @@ path = "src/main.rs"
 
 [dependencies]
 ansi-to-tui = "8.0.1"
+clap = { version = "4.6.1", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 directories = "6.0.0"
