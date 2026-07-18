@@ -150,14 +150,14 @@ impl App {
             }
             menu.extend_from_slice(&["|".white(), " [S]ort By ".yellow()]);
         }
-        menu.extend_from_slice(&["|".white(), " [esc] quit ".red()]);
+        menu.extend_from_slice(&["|".white(), " [esc] Quit ".red()]);
 
         Line::from(menu).centered()
     }
 
     fn render_tasks(&mut self, area: Rect, buf: &mut Buffer) {
         if self.store.is_empty() {
-            Paragraph::new("no points yet".dim())
+            Paragraph::new("no tasks yet".dim())
                 .centered()
                 .render(area.inner(Margin::new(0, 1)), buf);
             return;
@@ -319,7 +319,7 @@ impl App {
             && key_event.kind == KeyEventKind::Press
         {
             // While the overlay is open it captures every keystroke — otherwise
-            // typing a point that contains 'q' would quit the app mid-entry.
+            // typing a task that contains 'q' would quit the app mid-entry.
             if let Some(modal) = self.modal.as_mut() {
                 modal.handle_keys(key_event, &mut self.store);
             } else {
